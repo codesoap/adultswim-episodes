@@ -1,0 +1,49 @@
+#!/usr/bin/env sh
+# Get the episodes URLs for the given adultswim season URL.
+# If given: Only print the episodes' URLs that are within min_season and
+#           max_season.
+#
+# Quirk: Will only print URLs, that are available via youtube-dl, when
+#        providing season limits.
+#
+# Example for recieving available episode URLs of "Dream Corp LLC"
+# seasons one and two:
+# `adultswim-episodes "https://www.adultswim.com/videos/dream-corp-llc" 1 2`
+
+get_episode_URLs() {
+	series_url="$1"
+	curl -s "$series_url" \
+		| xmllint --html --xpath "//li[@itemprop='episode']/a/@href" - 2>/dev/null \
+		| sed 's/^ //' \
+		| awk '{print}' \
+		| tr ' ' '\n' \
+		| sed -e 's/^href="/https:\/\/www.adultswim.com/' -e 's/"$//'
+}
+
+get_episodes_season() {
+	episodes_url="$1"
+	/usr/local/bin/youtube-dl \
+		--skip-download \
+		--output '%(season_number)d' \
+		--get-filename \
+		"${episodes_url}" \
+		2>/dev/null
+}
+
+seasons_url="$1"
+min_season="${2:-1}"
+max_season="${3:-9999}"
+
+episodes_urls="$(get_episode_URLs "$seasons_url")"
+
+if [ -n "$2" ]; then
+	printf '%s\n' "$episodes_urls" | while read episodes_url; do
+		episodes_season="$(get_episodes_season "$episodes_url")"
+		[ -n "$episodes_season" ] && \
+		[ "$episodes_season" -ge "$min_season" ] && \
+		[ "$episodes_season" -le "$max_season" ] && \
+		printf '%s\n' "$episodes_url"
+	done
+else
+	printf '%s\n' "$episodes_urls"
+fi
