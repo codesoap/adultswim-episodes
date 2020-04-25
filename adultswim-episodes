@@ -12,8 +12,9 @@
 
 get_episode_URLs() {
 	series_url="$1"
+	xpath="//div[@itemprop='episode']/div[@itemprop='video']/a/@href"
 	curl -s "$series_url" \
-		| xmllint --html --xpath "//li[@itemprop='episode']/a/@href" - 2>/dev/null \
+		| xmllint --html --xpath "$xpath" - 2>/dev/null \
 		| sed 's/^ //' \
 		| awk '{print}' \
 		| tr ' ' '\n' \
